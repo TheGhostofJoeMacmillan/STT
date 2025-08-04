@@ -1,12 +1,15 @@
 # STT - Command-Line Speech-to-Text
 
-A simple, offline speech-to-text (STT) application that runs in your terminal. Press and hold the spacebar to record audio from your microphone, and the transcribed text is automatically printed and copied to your clipboard.
+A simple, offline speech-to-text (STT) application that runs in your terminal. It can type the transcribed text, copy it to the clipboard, or paste it on a mouse click.
 
 ## Features
 
 - **Offline First:** Uses the small and efficient Vosk offline model (`vosk-model-small-en-us-0.15`). The model is downloaded automatically on the first run.
-- **Push-to-Talk:** Press and hold the **spacebar** to record. Release to transcribe.
-- **Clipboard Integration:** The most recent transcription is automatically copied to the clipboard for easy pasting.
+- **Push-to-Talk:** Press **Ctrl+Shift+Space** to toggle recording.
+- **Multiple Output Modes:**
+  - **Type Mode (Default):** The transcribed text is automatically typed into the active window.
+  - **Copy Mode:** The transcribed text is automatically copied to the clipboard.
+  - **Mouse Click Paste Mode:** The transcribed text is pasted on the next mouse click.
 - **Simple Installation:** A single installation script sets up a virtual environment and a system-wide `stt` command.
 
 ## Installation
@@ -39,12 +42,30 @@ A simple, offline speech-to-text (STT) application that runs in your terminal. P
 
 ## Usage
 
-After installation, simply open a new terminal and run:
+After installation, simply open a new terminal and run the `stt` command with the desired flags.
+
+### Default Mode (Type)
 
 ```bash
 stt
 ```
 
-Press and hold the **spacebar** to start recording. Release it to see the transcription.
+Press **Ctrl+Shift+Space** to start and stop recording. The text will be typed into the active window.
+
+### Copy Mode
+
+```bash
+stt --copy
+```
+
+The transcribed text will be copied to the clipboard.
+
+### Mouse Click Paste Mode
+
+```bash
+stt --mouse-click
+```
+
+After a transcription is complete, the text will be pasted at the location of the next mouse click.
 
 Press `Ctrl+C` to exit the application.

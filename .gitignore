@@ -35,3 +35,16 @@ wheels/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Backup files
+*.bk
+*.original
+
+# Test files
+stt2.py
+test.py
+test2.py
+
+# Virtual environment
+venv/
+
