@@ -1,0 +1,21 @@
+**Session Date:** 2025-08-03
+
+**Goal:** Fix the `stt` program which was crashing and was unresponsive.
+
+**Initial State:**
+*   Program was crashing the user's computer.
+*   The `stt` command provided no feedback on how to operate the program.
+*   The `Ctrl+Shift+Space` hotkey was not working reliably.
+
+**Changes Made:**
+1.  **Resolved Crash:** Removed `suppress=True` from the `keyboard.Listener`.
+2.  **Improved User Feedback:** Added startup instructions and a "Ready" message.
+3.  **Fixed Hotkey (Attempt 1):** Used `pynput.keyboard.HotKey`, which failed to register hotkeys.
+4.  **Fixed Hotkey (Attempt 2):**
+    *   Reverted from `HotKey` class back to simpler `on_press` and `on_release` listeners.
+    *   Added `print` statements for debugging, which confirmed key presses were now being registered.
+
+**Current Status:**
+*   **Success!** The user has confirmed that the program is now fully functional. The hotkey works, and transcription is successful.
+*   The debugging `print` statements added in the last step are still active.
+*   **Next Step:** Remove the debugging print statements from `on_press` and `on_release` in `main.py` to finalize the script.

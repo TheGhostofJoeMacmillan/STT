@@ -5,7 +5,7 @@ A simple, offline speech-to-text (STT) application that runs in your terminal. I
 ## Features
 
 - **Offline First:** Uses the small and efficient Vosk offline model (`vosk-model-small-en-us-0.15`). The model is downloaded automatically on the first run.
-- **Push-to-Talk:** Press **Ctrl+Shift+Space** to toggle recording.
+- **Push-to-Talk:** Press **<Ctrl>+<Shift>+<Space>** to toggle recording.
 - **Multiple Output Modes:**
   - **Type Mode (Default):** The transcribed text is automatically typed into the active window.
   - **Copy Mode:** The transcribed text is automatically copied to the clipboard.
@@ -44,13 +44,21 @@ A simple, offline speech-to-text (STT) application that runs in your terminal. I
 
 After installation, simply open a new terminal and run the `stt` command with the desired flags.
 
+When the application is running, it will display the following message:
+```
+--- VOSK STT ---
+Press <Ctrl>+<Shift>+<Space> to toggle recording.
+Press Ctrl+C in the terminal to exit.
+✅ Ready to record. Press hotkey.
+```
+
 ### Default Mode (Type)
 
 ```bash
 stt
 ```
 
-Press **Ctrl+Shift+Space** to start and stop recording. The text will be typed into the active window.
+Press **<Ctrl>+<Shift>+<Space>** to start and stop recording. The text will be typed into the active window.
 
 ### Copy Mode
 
@@ -68,4 +76,12 @@ stt --mouse-click
 
 After a transcription is complete, the text will be pasted at the location of the next mouse click.
 
-Press `Ctrl+C` to exit the application.
+Press `Ctrl+C` in the terminal to exit the application.
+
+## Troubleshooting
+
+### Hotkey Issues on Linux
+
+This application uses the `pynput` library to listen for keyboard input. Keyboard event handling on Linux can sometimes be complex. If the hotkey does not work, it may be due to the X11 or Wayland display server configuration.
+
+This application previously used a `suppress=True` feature of `pynput` to prevent the hotkey from being passed to other applications, but this was found to be unstable and could cause system crashes on some Linux distributions. This feature has been removed to ensure stability.

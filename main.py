@@ -11,156 +11,214 @@ import pyperclip
 from pynput import keyboard, mouse
 from pynput.keyboard import Controller, Key
 import sounddevice as sd
-from vosk import Model, KaldiRecognizer
+from vosk import Model, KaldiRecognizer, SetLogLevel
 
-# --- Configuration ---
+# --- Constants ---
 MODEL_NAME = "vosk-model-small-en-us-0.15"
 MODEL_URL = f"https://alphacephei.com/vosk/models/{MODEL_NAME}.zip"
 MODEL_DIR = os.path.join(os.path.expanduser("~"), ".cache", "vosk")
 MODEL_PATH = os.path.join(MODEL_DIR, MODEL_NAME)
 SAMPLE_RATE = 16000
-DEVICE = None  # Default microphone
 CHANNELS = 1
 BLOCK_SIZE = 8000
-SIMULATE_ENTER = False  # Set to True to press Enter after inserting text
-controller = Controller()  # For typing text and backspace
 
-# --- Global State ---
-q = queue.Queue()
-is_recording = False
-recognizer = None
-current_keys = set()  # Track currently pressed keys
-last_transcription = ""
+class SttApp:
+    def __init__(self, mode='type', simulate_enter=False, verbose=False):
+        self.mode = mode
+        self.simulate_enter = simulate_enter
+        self.verbose = verbose
+        self.q = queue.Queue()
+        self.is_recording = False
+        self.current_keys = set()
+        self.last_transcription = ""
+        self.recognizer = None
+        self.keyboard_controller = Controller()
+        self.keyboard_listener = None
+        self.mouse_listener = None
 
-def download_and_unzip_model():
-    os.makedirs(MODEL_DIR, exist_ok=True)
-    if not os.path.exists(MODEL_PATH):
-        print(f"Model not found. Downloading {MODEL_NAME}...")
-        zip_path = os.path.join(MODEL_DIR, f"{MODEL_NAME}.zip")
+    def _log(self, message):
+        if self.verbose:
+            print(message, file=sys.stderr)
+
+    def download_and_unzip_model(self):
+        os.makedirs(MODEL_DIR, exist_ok=True)
+        if not os.path.exists(MODEL_PATH):
+            print(f"Model not found. Downloading {MODEL_NAME}...")
+            zip_path = os.path.join(MODEL_DIR, f"{MODEL_NAME}.zip")
+            try:
+                with requests.get(MODEL_URL, stream=True) as r:
+                    r.raise_for_status()
+                    total_size = int(r.headers.get('content-length', 0))
+                    bytes_downloaded = 0
+                    with open(zip_path, 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                            bytes_downloaded += len(chunk)
+                            progress = (bytes_downloaded / total_size) * 100
+                            print(f'\rDownloading: {progress:.2f}%', end='')
+                print("\nExtracting model...")
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(MODEL_DIR)
+                os.remove(zip_path)
+                print("Model ready.")
+            except requests.exceptions.RequestException as e:
+                print(f"Error downloading model: {e}", file=sys.stderr)
+                sys.exit(1)
+            except Exception as e:
+                print(f"Error extracting model: {e}", file=sys.stderr)
+                sys.exit(1)
+
+    def audio_callback(self, indata, frames, time, status):
+        if status:
+            self._log(f"Audio status: {status}")
+        if self.is_recording:
+            self.q.put(bytes(indata))
+
+    def on_press(self, key):
+        if key in self.current_keys:
+            return
+        self.current_keys.add(key)
+        if keyboard.Key.ctrl in self.current_keys and \
+           keyboard.Key.shift in self.current_keys and \
+           key == keyboard.Key.space:
+            self.is_recording = not self.is_recording
+
+    def on_release(self, key):
         try:
-            with requests.get(MODEL_URL, stream=True) as r:
-                r.raise_for_status()
-                total_size = int(r.headers.get('content-length', 0))
-                bytes_downloaded = 0
-                with open(zip_path, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                        bytes_downloaded += len(chunk)
-                        progress = (bytes_downloaded / total_size) * 100
-                        print(f'\rDownloading: {progress:.2f}%', end='')
-            print("\nExtracting model...")
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(MODEL_DIR)
-            os.remove(zip_path)
-            print("Model ready.")
-        except requests.exceptions.RequestException as e:
-            print(f"Error downloading model: {e}")
-            sys.exit(1)
+            self.current_keys.remove(key)
+        except KeyError:
+            pass
+
+    def on_click(self, x, y, button, pressed):
+        if pressed and self.last_transcription:
+            pyperclip.copy(self.last_transcription)
+            self._log(f"Pasted on click: {self.last_transcription}")
+            with self.keyboard_controller.pressed(Key.ctrl):
+                self.keyboard_controller.press('v')
+                self.keyboard_controller.release('v')
+        return True
+
+    def insert_text(self, text):
+        if not text:
+            return
+        self.keyboard_controller.type(text + ' ')
+        if self.simulate_enter:
+            self.keyboard_controller.press(Key.enter)
+            self.keyboard_controller.release(Key.enter)
+
+    def run(self):
+        self.download_and_unzip_model()
+        try:
+            SetLogLevel(-1)
+            model = Model(MODEL_PATH)
+            self.recognizer = KaldiRecognizer(model, SAMPLE_RATE)
+            self.recognizer.SetWords(True)
         except Exception as e:
-            print(f"Error extracting model: {e}")
+            print(f"Error: Failed to initialize Vosk recognizer: {e}", file=sys.stderr)
             sys.exit(1)
 
-def audio_callback(indata, frames, time, status):
-    if status:
-        print(status, file=sys.stderr)
-    if is_recording:
-        q.put(bytes(indata))
+        try:
+            sd.check_input_settings(device=None, samplerate=SAMPLE_RATE, channels=CHANNELS)
+        except sd.PortAudioError as e:
+            print(f"Error: Audio device not suitable.", file=sys.stderr)
+            print(f"Please check your microphone. It might not support {SAMPLE_RATE}Hz sample rate or {CHANNELS} channel(s).", file=sys.stderr)
+            print(f"Details: {e}", file=sys.stderr)
+            sys.exit(1)
 
-def on_press(key):
-    global is_recording
-    current_keys.add(key)
-    if keyboard.Key.ctrl in current_keys and keyboard.Key.shift in current_keys and keyboard.Key.space == key:
-        controller.press(Key.backspace)
-        controller.release(Key.backspace)
-        is_recording = not is_recording
-        if is_recording:
-            print("Recording started... (press Ctrl+Shift+Space again to stop)")
-        else:
-            print("Recording stopped. Processing...")
+        print("\n--- VOSK STT ---")
+        print("Press <Ctrl>+<Shift>+<Space> to toggle recording.")
+        print("Press Ctrl+C in the terminal to exit.")
 
-def on_release(key):
-    if key in current_keys:
-        current_keys.remove(key)
+        self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+        self.keyboard_listener.start()
 
-def on_click(x, y, button, pressed):
-    if pressed and last_transcription:
-        pyperclip.copy(last_transcription)
-        print(f"Pasted on click: {last_transcription}")
-        # Simulate Ctrl+V to paste
-        with controller.pressed(Key.ctrl):
-            controller.press('v')
-            controller.release('v')
-    return True
+        if self.mode == 'mouse_click':
+            self.mouse_listener = mouse.Listener(on_click=self.on_click)
+            self.mouse_listener.start()
+            self._log("Mouse click paste is active.")
 
-def insert_text(text):
-    if not text:
-        return
-    controller.type(text + ' ')
-    if SIMULATE_ENTER:
-        controller.press(Key.enter)
-        controller.release(Key.enter)
+        try:
+            with sd.RawInputStream(samplerate=SAMPLE_RATE, blocksize=BLOCK_SIZE,
+                                   device=None, dtype='int16', channels=CHANNELS,
+                                   callback=self.audio_callback):
+                self.main_loop()
+        except sd.PortAudioError as e:
+            print(f"Error: Could not open audio stream: {e}", file=sys.stderr)
+            print("Please check your microphone connection and system permissions.", file=sys.stderr)
+        except Exception as e:
+            print(f"An unexpected error occurred in the main loop: {e}", file=sys.stderr)
+        finally:
+            self.stop()
 
-def transcribe_audio(mode='type'):
-    global recognizer, last_transcription
-    download_and_unzip_model()
-    try:
-        model = Model(MODEL_PATH)
-        recognizer = KaldiRecognizer(model, SAMPLE_RATE)
-        recognizer.SetWords(True)
-    except Exception as e:
-        print(f"Failed to initialize recognizer: {e}")
-        sys.exit(1)
+    def main_loop(self):
+        spinner_chars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+        spinner_index = 0
+        was_recording = False
+        ready_message_shown = False
 
-    print("--- VOSK STT (Toggle with Ctrl+Shift+Space) ---")
-    print("Press Ctrl+Shift+Space to start/stop recording. Ctrl+C to exit.")
-
-    listener_keyboard = keyboard.Listener(on_press=on_press, on_release=on_release)
-    listener_keyboard.start()
-
-    listener_mouse = None
-    if mode == 'mouse_click':
-        listener_mouse = mouse.Listener(on_click=on_click)
-        listener_mouse.start()
-        print("Mouse click paste is active.")
-
-    try:
-        with sd.RawInputStream(samplerate=SAMPLE_RATE, blocksize=BLOCK_SIZE, device=DEVICE,
-                               dtype='int16', channels=CHANNELS, callback=audio_callback):
-            while listener_keyboard.is_alive():
-                if not is_recording and not q.empty():
-                    while not q.empty():
-                        data = q.get()
-                        recognizer.AcceptWaveform(data)
-
-                    time.sleep(0.5)
-                    result_json = recognizer.FinalResult()
-                    result_dict = json.loads(result_json)
-                    text = result_dict.get('text', '').strip()
-
-                    if text:
-                        print(f"\rTranscription: {text}")
-                        last_transcription = text
-                        if mode == 'type':
-                            insert_text(text)
-                        elif mode == 'copy':
-                            pyperclip.copy(text)
-                            print("Copied to clipboard.")
-                    else:
-                        print("\r" + " " * 50 + "\r", end="")
-
-                    recognizer.Reset()
+        while self.keyboard_listener.is_alive():
+            if self.is_recording:
+                ready_message_shown = False
+                was_recording = True
+                spinner_char = spinner_chars[spinner_index]
+                sys.stdout.write(f"\r🎤 Recording {spinner_char} ")
+                sys.stdout.flush()
+                spinner_index = (spinner_index + 1) % len(spinner_chars)
+                time.sleep(0.1)
+            elif was_recording:
+                was_recording = False
+                sys.stdout.write("\r" + " " * 30 + "\r")
+                sys.stdout.flush()
+                self.process_audio_queue()
+            else:
+                if not ready_message_shown:
+                    sys.stdout.write("\r✅ Ready to record. Press hotkey. ")
+                    sys.stdout.flush()
+                    ready_message_shown = True
                 time.sleep(0.1)
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        print("\nExiting.")
-        listener_keyboard.stop()
-        if listener_mouse:
-            listener_mouse.stop()
+    def process_audio_queue(self):
+        if self.q.empty():
+            return
+
+        sys.stdout.write("\r🧠 Processing...      ")
+        sys.stdout.flush()
+
+        while not self.q.empty():
+            data = self.q.get()
+            self.recognizer.AcceptWaveform(data)
+
+        result_json = self.recognizer.FinalResult()
+        result_dict = json.loads(result_json)
+        text = result_dict.get('text', '').strip()
+
+        sys.stdout.write("\r" + " " * 20 + "\r")
+        sys.stdout.flush()
+
+        if text:
+            self._log(f"Transcription: {text}")
+            self.last_transcription = text
+            if self.mode == 'type':
+                self.insert_text(text)
+            elif self.mode == 'copy':
+                pyperclip.copy(text)
+                self._log("Copied to clipboard.")
+
+        self.recognizer.Reset()
+
+    def stop(self):
+        self._log("Exiting.")
+        if self.keyboard_listener and self.keyboard_listener.is_alive():
+            self.keyboard_listener.stop()
+        if self.mouse_listener and self.mouse_listener.is_alive():
+            self.mouse_listener.stop()
+        print()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Offline Speech-to-Text Tool.")
+    parser = argparse.ArgumentParser(
+        description="A simple, offline speech-to-text tool.",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
     parser.add_argument(
         '-c', '--copy',
         action='store_true',
@@ -171,6 +229,11 @@ if __name__ == "__main__":
         action='store_true',
         help="Enable paste on mouse click mode."
     )
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help="Print verbose output to stderr."
+    )
     args = parser.parse_args()
 
     mode = 'type'
@@ -179,7 +242,9 @@ if __name__ == "__main__":
     elif args.mouse_click:
         mode = 'mouse_click'
 
+    app = SttApp(mode=mode, verbose=args.verbose)
     try:
-        transcribe_audio(mode=mode)
+        app.run()
     except KeyboardInterrupt:
+        app.stop()
         sys.exit(0)
