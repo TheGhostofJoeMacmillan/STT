@@ -1,87 +1,125 @@
-# STT - Command-Line Speech-to-Text
+# stt - minimal speech-to-text
 
-A simple, offline speech-to-text (STT) application that runs in your terminal. It can type the transcribed text, copy it to the clipboard, or paste it on a mouse click.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 
-## Features
+A beautifully minimal, offline speech-to-text tool that just works. Clean interface, configurable hotkeys, and multiple output modes.
 
-- **Offline First:** Uses the small and efficient Vosk offline model (`vosk-model-small-en-us-0.15`). The model is downloaded automatically on the first run.
-- **Push-to-Talk:** Press **<Ctrl>+<Shift>+<Space>** to toggle recording.
-- **Multiple Output Modes:**
-  - **Type Mode (Default):** The transcribed text is automatically typed into the active window.
-  - **Copy Mode:** The transcribed text is automatically copied to the clipboard.
-  - **Mouse Click Paste Mode:** The transcribed text is pasted on the next mouse click.
-- **Simple Installation:** A single installation script sets up a virtual environment and a system-wide `stt` command.
+## ✨ Features
 
-## Installation
+- **🎙️ Offline** - No internet required after setup
+- **⌨️ Custom hotkeys** - Any key combination you want  
+- **🎯 Multiple modes** - Type, copy, or paste on click
+- **📦 Zero config** - One command install, ready to use
+- **🎨 Minimal UI** - Clean status indicators, optional volume dots
+- **🔒 Private** - All processing happens locally
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <your-repo-url-here>
-    cd stt
-    ```
-
-2.  **Run the installer:**
-    This will create a local Python virtual environment, install dependencies, and create the `stt` command in `~/.local/bin/`.
-    ```bash
-    chmod +x install.sh
-    ./install.sh
-    ```
-
-3.  **Update your PATH:**
-    Ensure `~/.local/bin` is in your shell's PATH. You may need to add the following line to your `~/.bashrc` or `~/.zshrc` and restart your terminal:
-    ```bash
-    export PATH="$HOME/.local/bin:$PATH"
-    ```
-
-4.  **Install Clipboard Utility (Linux):**
-    For the copy-to-clipboard functionality to work on Linux, you need to have either `xclip` or `xsel` installed.
-    ```bash
-    # For Debian/Ubuntu
-    sudo apt-get update && sudo apt-get install xclip
-    ```
-
-## Usage
-
-After installation, simply open a new terminal and run the `stt` command with the desired flags.
-
-When the application is running, it will display the following message:
-```
---- VOSK STT ---
-Press <Ctrl>+<Shift>+<Space> to toggle recording.
-Press Ctrl+C in the terminal to exit.
-✅ Ready to record. Press hotkey.
-```
-
-### Default Mode (Type)
+## 🚀 Quick Start
 
 ```bash
-stt
+# Install
+git clone <your-repo-url>
+cd stt
+./install.sh
+
+# Use
+stt                    # Basic typing mode
+stt -c -k f1          # Copy mode with F1 key  
+stt -v -mc            # Mouse paste with volume dots
 ```
 
-Press **<Ctrl>+<Shift>+<Space>** to start and stop recording. The text will be typed into the active window.
+## 📖 Usage
 
-### Copy Mode
+### Basic Modes
+```bash
+stt           # Type transcribed text directly
+stt -c        # Copy text to clipboard  
+stt -mc       # Paste on mouse click
+stt -v        # Show volume dots visualization
+```
+
+### Custom Hotkeys
+```bash
+stt -k f1                    # F1 key
+stt -k "ctrl+r"             # Ctrl+R
+stt -k "shift+space"        # Shift+Space
+```
+
+### Status Indicators
+- 🟢 `• ready` - Press hotkey to start
+- 🟡 `⠋ listening` - Recording your voice  
+- 🔴 `⠙ processing` - Converting to text
+
+With `-v` flag, volume dots extend to show audio levels:
+```
+🟡 ⠋ listening ••••••••••••••••
+```
+
+## ⚙️ Installation Details
+
+The installer creates:
+- Virtual environment with all dependencies
+- `~/.local/bin/stt` command  
+- Auto-downloads Vosk model (~40MB) on first run
+
+Make sure `~/.local/bin` is in your PATH:
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+## 🎯 Examples
 
 ```bash
-stt --copy
+# Quick voice notes while coding
+stt -c -k f1
+
+# Transcribe to document  
+stt -v
+
+# Voice commands with mouse
+stt -mc -k "ctrl+space"
 ```
 
-The transcribed text will be copied to the clipboard.
+## 🔧 Requirements
 
-### Mouse Click Paste Mode
+- Python 3.7+
+- Microphone access
+- Linux/macOS/Windows
 
-```bash
-stt --mouse-click
-```
+## 💡 Tips
 
-After a transcription is complete, the text will be pasted at the location of the next mouse click.
+- **Speak clearly** for best results
+- **Quiet environment** improves accuracy  
+- **Try different hotkeys** if one doesn't work
+- **Use `-v` mode** to see if microphone is working
 
-Press `Ctrl+C` in the terminal to exit the application.
+## 🐛 Troubleshooting
 
-## Troubleshooting
+**Microphone not working?**
+- Check system audio permissions
+- Test with other audio apps first
 
-### Hotkey Issues on Linux
+**Hotkey not responding?**  
+- Try function keys (`f1`, `f2`) instead of combinations
+- Some key combos may be reserved by system
 
-This application uses the `pynput` library to listen for keyboard input. Keyboard event handling on Linux can sometimes be complex. If the hotkey does not work, it may be due to the X11 or Wayland display server configuration.
+**Poor recognition?**
+- Increase microphone volume
+- Reduce background noise
+- Speak more slowly and clearly
 
-This application previously used a `suppress=True` feature of `pynput` to prevent the hotkey from being passed to other applications, but this was found to be unstable and could cause system crashes on some Linux distributions. This feature has been removed to ensure stability.
+## 🏗️ Technical Details
+
+- **Engine**: Vosk offline speech recognition
+- **Model**: English US, optimized for speed/accuracy
+- **Audio**: 16kHz sampling, real-time processing
+- **Interface**: Terminal-based with ANSI colors
+
+## 🔒 Privacy
+
+100% offline processing. No data sent to external servers. Your voice stays on your machine.
+
+## 📄 License
+
+MIT License - feel free to modify and share!
