@@ -30,9 +30,11 @@ stt -v -mc            # Mouse paste with volume dots
 
 ## 📖 Usage
 
+**Default hotkey: `Ctrl+Shift+Space`** - Press to start/stop recording
+
 ### Basic Modes
 ```bash
-stt           # Type transcribed text directly
+stt           # Type transcribed text directly (Ctrl+Shift+Space)
 stt -c        # Copy text to clipboard  
 stt -mc       # Paste on mouse click
 stt -v        # Show volume dots visualization
@@ -40,9 +42,12 @@ stt -v        # Show volume dots visualization
 
 ### Custom Hotkeys
 ```bash
-stt -k f1                    # F1 key
-stt -k "ctrl+r"             # Ctrl+R
-stt -k "shift+space"        # Shift+Space
+stt -k f1                         # F1 key (recommended for laptops)
+stt -k "ctrl+r"                  # Ctrl+R
+stt -k "shift+space"             # Shift+Space
+
+# Save hotkey permanently
+stt -k f1 --save-hotkey          # Makes F1 your default hotkey
 ```
 
 ### Status Indicators

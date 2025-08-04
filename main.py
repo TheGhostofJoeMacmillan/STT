@@ -42,8 +42,40 @@ class SttApp:
         self.mouse_listener = None
         self.last_toggle_time = 0
         
+        # Load saved config
+        self.config_file = os.path.expanduser("~/.config/stt/config.json")
+        self.load_config(hotkey_combo)
+        
+        
+        # Audio visualization data
+        self.audio_data = []
+        self.frequency_data = []
+        self.max_audio_history = 200
+        self.terminal_width = shutil.get_terminal_size().columns
+        self.terminal_height = shutil.get_terminal_size().lines
+        self.num_bars = min(60, self.terminal_width - 10)  # Number of frequency bars
+        self.original_settings = None
+
+    def load_config(self, hotkey_combo):
+        """Load configuration from file or use defaults"""
+        default_hotkey = ['ctrl', 'shift', 'space']
+        
+        if hotkey_combo:
+            # Command line override
+            self.hotkey_combo = hotkey_combo
+        else:
+            # Try to load from config file
+            try:
+                if os.path.exists(self.config_file):
+                    with open(self.config_file, 'r') as f:
+                        config = json.load(f)
+                        self.hotkey_combo = config.get('hotkey', default_hotkey)
+                else:
+                    self.hotkey_combo = default_hotkey
+            except:
+                self.hotkey_combo = default_hotkey
+        
         # Parse hotkey combination
-        self.hotkey_combo = hotkey_combo or ['ctrl', 'shift', 'space']
         self.hotkey_keys = []
         for key_name in self.hotkey_combo:
             key_lower = key_name.lower()
@@ -65,15 +97,18 @@ class SttApp:
                 self.hotkey_keys.append(getattr(keyboard.Key, f'f{fkey_num}'))
             elif len(key_name) == 1:
                 self.hotkey_keys.append(keyboard.KeyCode.from_char(key_name.lower()))
-        
-        # Audio visualization data
-        self.audio_data = []
-        self.frequency_data = []
-        self.max_audio_history = 200
-        self.terminal_width = shutil.get_terminal_size().columns
-        self.terminal_height = shutil.get_terminal_size().lines
-        self.num_bars = min(60, self.terminal_width - 10)  # Number of frequency bars
-        self.original_settings = None
+
+    def save_config(self):
+        """Save current configuration"""
+        try:
+            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+            config = {
+                'hotkey': self.hotkey_combo
+            }
+            with open(self.config_file, 'w') as f:
+                json.dump(config, f, indent=2)
+        except:
+            pass  # Silently fail if can't save
 
     def download_and_unzip_model(self):
         os.makedirs(MODEL_DIR, exist_ok=True)
@@ -496,6 +531,7 @@ class MinimalHelpFormatter(argparse.HelpFormatter):
     
     def format_help(self):
         return """stt - minimal speech-to-text
+Default hotkey: Ctrl+Shift+Space
 
 USAGE
   stt [-c|-mc] [-v] [-k HOTKEY]
@@ -509,11 +545,13 @@ OPTIONS
   -v            Show volume dots
   -k HOTKEY     Custom hotkey (default: ctrl+shift+space)
                 Examples: f1, ctrl+r, shift+space
+                Add --save-hotkey to make permanent
 
 EXAMPLES
-  stt                    Basic mode
-  stt -c -k f1          Copy mode with F1 key
-  stt -v -mc            Mouse mode with dots
+  stt                          Basic mode
+  stt -c -k f1                Copy mode with F1 key
+  stt -v -mc                  Mouse mode with dots
+  stt -k f1 --save-hotkey     Save F1 as default hotkey
 
 """
 
@@ -544,6 +582,11 @@ if __name__ == "__main__":
         '-k', '--hotkey',
         default='ctrl+shift+space'
     )
+    parser.add_argument(
+        '--save-hotkey',
+        action='store_true',
+        help=argparse.SUPPRESS
+    )
     args = parser.parse_args()
 
     # Handle help
@@ -561,6 +604,13 @@ if __name__ == "__main__":
     hotkey_combo = [key.strip().lower() for key in args.hotkey.split('+')]
 
     app = SttApp(mode=mode, visualizer=args.visualizer, hotkey_combo=hotkey_combo)
+    
+    # Save hotkey if requested
+    if args.save_hotkey:
+        app.save_config()
+        print(f"Hotkey saved: {'+'.join(hotkey_combo)}")
+        sys.exit(0)
+    
     try:
         app.run()
     except KeyboardInterrupt:
