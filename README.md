@@ -18,8 +18,8 @@ A beautifully minimal, offline speech-to-text tool that just works. Clean interf
 
 ```bash
 # Install
-git clone <your-repo-url>
-cd stt
+git clone https://github.com/TheGhostofJoeMacmillan/STT
+cd STT
 ./install.sh
 
 # Use
