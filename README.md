@@ -5,16 +5,16 @@
 
 A beautifully minimal, offline speech-to-text tool that just works. Clean interface, configurable hotkeys, and multiple output modes.
 
-## ✨ Features
+## Features
 
-- **🎙️ Offline** - No internet required after setup
-- **⌨️ Custom hotkeys** - Any key combination you want  
-- **🎯 Multiple modes** - Type, copy, or paste on click
-- **📦 Zero config** - One command install, ready to use
-- **🎨 Minimal UI** - Clean status indicators, optional volume dots
-- **🔒 Private** - All processing happens locally
+- **Offline** - No internet required after setup
+- **Custom hotkeys** - Any key combination you want  
+- **Multiple modes** - Type, copy, or paste on click
+- **Zero config** - One command install, ready to use
+- **Minimal UI** - Clean status indicators, optional volume dots
+- **Private** - All processing happens locally
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Install
@@ -28,7 +28,7 @@ stt -c -k f1          # Copy mode with F1 key
 stt -v -mc            # Mouse paste with volume dots
 ```
 
-## 📖 Usage
+## Usage
 
 **Default hotkey: `Ctrl+Shift+Space`** - Press to start/stop recording
 
@@ -51,16 +51,16 @@ stt -k f1 --save-hotkey          # Makes F1 your default hotkey
 ```
 
 ### Status Indicators
-- 🟢 `• ready` - Press hotkey to start
-- 🟡 `⠋ listening` - Recording your voice  
-- 🔴 `⠙ processing` - Converting to text
+- `• ready` - Press hotkey to start
+- `⠋ listening` - Recording your voice  
+- `⠙ processing` - Converting to text
 
 With `-v` flag, volume dots extend to show audio levels:
 ```
-🟡 ⠋ listening ••••••••••••••••
+⠋ listening ••••••••••••••••
 ```
 
-## ⚙️ Installation Details
+## Installation Details
 
 The installer creates:
 - Virtual environment with all dependencies
@@ -73,7 +73,7 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-## 🎯 Examples
+## Examples
 
 ```bash
 # Quick voice notes while coding
@@ -86,20 +86,20 @@ stt -v
 stt -mc -k "ctrl+space"
 ```
 
-## 🔧 Requirements
+## Requirements
 
 - Python 3.7+
 - Microphone access
 - Linux/macOS/Windows
 
-## 💡 Tips
+## Tips
 
 - **Speak clearly** for best results
 - **Quiet environment** improves accuracy  
 - **Try different hotkeys** if one doesn't work
 - **Use `-v` mode** to see if microphone is working
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 **Microphone not working?**
 - Check system audio permissions
@@ -114,17 +114,17 @@ stt -mc -k "ctrl+space"
 - Reduce background noise
 - Speak more slowly and clearly
 
-## 🏗️ Technical Details
+## Technical Details
 
 - **Engine**: Vosk offline speech recognition
 - **Model**: English US, optimized for speed/accuracy
 - **Audio**: 16kHz sampling, real-time processing
 - **Interface**: Terminal-based with ANSI colors
 
-## 🔒 Privacy
+## Privacy
 
 100% offline processing. No data sent to external servers. Your voice stays on your machine.
 
-## 📄 License
+## License
 
 MIT License - feel free to modify and share!
